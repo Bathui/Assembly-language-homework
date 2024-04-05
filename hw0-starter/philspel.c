@@ -42,12 +42,19 @@ HashTable *dictionary;
  * process, in the same way which this does.
  */
 int main(int argc, char **argv) {
-  fprintf(stderr, "You need to create the main routine!\n");
   /* main in C should always return 0 as a way of telling
      whatever program invoked this that everything went OK.
 
      You should free the dictionary when done.
      */
+  dictionary = (HashTable*)malloc(sizeof(dictionary));
+  readDictionary(argv[1]);
+  struct HashBucket* temp = NULL;
+  temp = *(dictionary->data);
+  while (temp != NULL){
+    printf("%s\n", (char*)(temp->data));
+    temp = temp->next;
+  }
   return 0;
 }
 
@@ -62,7 +69,7 @@ unsigned int stringHash(void *s) {
   int p = 31;
   int hash_value = 0;
   for (int i = 0; i < strlen(string); i++) {
-    hash_value += string[i]*pow(p,i);
+    hash_value += (string[i] * pow(p, i));
   }
   return hash_value;
 }
@@ -98,9 +105,25 @@ int stringEquals(void *s1, void *s2) {
  * arbitrarily long dictionary chacaters.
  */
 void readDictionary(char *filename) {
-  fprintf(stderr, "Need to define readDictionary\n");
-  FILE *f1 = fopen(filename, 'r');
-  fscanf(f1, "%s", dictionary->data);
+  char buffer[70];
+  struct HashBucket* temp;
+  FILE *f1 = fopen(filename, "r");
+  if (f1 == NULL) {
+    fprintf(stderr, "The file does not exist\n");
+    exit(0);
+  }
+  fscanf(f1, "%s", buffer);
+  dictionary->data = (struct HashBucket**)malloc(sizeof(struct HashBucket*));
+  *(dictionary->data) = (struct HashBucket*)malloc(sizeof(struct HashBucket));
+  temp = *(dictionary->data);
+  temp->data = buffer;
+  temp->next = NULL;
+  while(!feof(f1)){
+    fscanf(f1, "%s", buffer);
+    temp->next = (struct HashBucket*)malloc(sizeof(struct HashBucket));
+    temp = temp->next;
+    temp->next = NULL;
+  }
 }
 
 /*
