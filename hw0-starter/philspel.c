@@ -47,14 +47,10 @@ int main(int argc, char **argv) {
 
      You should free the dictionary when done.
      */
-  dictionary = (HashTable*)malloc(sizeof(dictionary));
+
+  dictionary = (HashTable*)malloc(sizeof(HashTable));
+
   readDictionary(argv[1]);
-  struct HashBucket* temp = NULL;
-  temp = *(dictionary->data);
-  while (temp != NULL){
-    printf("%s\n", (char*)(temp->data));
-    temp = temp->next;
-  }
   return 0;
 }
 
@@ -68,6 +64,7 @@ unsigned int stringHash(void *s) {
   // create a hash function below. use polynomial rolling hash function
   int p = 31;
   int hash_value = 0;
+  if(strlen(string)==0) return 0;
   for (int i = 0; i < strlen(string); i++) {
     hash_value += (string[i] * pow(p, i));
   }
@@ -105,24 +102,57 @@ int stringEquals(void *s1, void *s2) {
  * arbitrarily long dictionary chacaters.
  */
 void readDictionary(char *filename) {
-  char buffer[70];
   struct HashBucket* temp;
   FILE *f1 = fopen(filename, "r");
   if (f1 == NULL) {
     fprintf(stderr, "The file does not exist\n");
     exit(0);
   }
-  fscanf(f1, "%s", buffer);
+  int count = 0, max = 0;
+  char buffer2;
+  fscanf(f1,"%c", &buffer2);
+  while (!feof(f1)){
+    if(buffer2 == '\n'){
+      count=0;
+    }
+    else{count++;}
+    if(count>max)max = count;
+    fscanf(f1,"%c", &buffer2);
+  }
+  max+=1;
+  char* buffer = (char*)malloc(sizeof(char)*max);
+  fseek(f1, 0, SEEK_SET);
   dictionary->data = (struct HashBucket**)malloc(sizeof(struct HashBucket*));
   *(dictionary->data) = (struct HashBucket*)malloc(sizeof(struct HashBucket));
   temp = *(dictionary->data);
-  temp->data = buffer;
+  temp->key = malloc(sizeof(char)*max);
+  temp->data = malloc(sizeof(int));
+  *((char*)(temp->key)) = 0;
+  fscanf(f1, "%s", buffer);
+  strcpy((char*)(temp->key), buffer);
+  *((int*)(temp->data)) = stringHash(temp->key);
   temp->next = NULL;
   while(!feof(f1)){
-    fscanf(f1, "%s", buffer);
+    strcpy((char*)(temp->key), buffer);
+     *((int*)(temp->data)) = stringHash(temp->key);
     temp->next = (struct HashBucket*)malloc(sizeof(struct HashBucket));
     temp = temp->next;
+    temp->key = malloc(sizeof(char)*max);
+    temp->data = malloc(sizeof(int));
+    *((int*)(temp->data)) = 0;
+    *((char*)(temp->key)) = 0;
     temp->next = NULL;
+    fscanf(f1, "%s", buffer);   
+  }
+  fclose(f1);
+  struct HashBucket *temp2 = *(dictionary->data);
+  char* a = (char*)(temp2->key);
+  // checking elements
+  while (temp2 != NULL){
+    //checking keys and datas
+    printf("%s", (char*)(temp2->key));
+    printf("%d\n", *((int*)(temp2->data)));
+    temp2 = temp2->next;
   }
 }
 
