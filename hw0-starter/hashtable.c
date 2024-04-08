@@ -81,5 +81,7 @@ void *findData(HashTable *table, void *key) {
     }
     lookAt = lookAt->next;
   }
+  // printf("did not find\n");
   return NULL;
+  // remember to delete
 }

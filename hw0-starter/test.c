@@ -1,7 +1,8 @@
 # include <stdio.h>
 # include <string.h>
-int main(){
-	char a[10];
-    scanf("%s", a);
-	printf("%s", a);
+int main(int argc, char **argv) {
+	int a = 3;
+    scanf("%d", &a);
+	printf("%d", a);
+	return 0;
 }
