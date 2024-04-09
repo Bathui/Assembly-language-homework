@@ -23,3 +23,9 @@ test : clean philspel
 	diff sampleOutput testOutput 2> /dev/null
 	@echo Testing complete
 
+test2 : clean philspel
+	touch testOutput
+	cat test_basic.in | ./philspel test_basic.dict > testOutput
+	@echo The following should be empty if there are no problems
+	diff test_basic.out testOutput 2> /dev/null
+	@echo Testing complete

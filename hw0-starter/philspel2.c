@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
      You should free the dictionary when done.
      */
   readDictionary(argv[1]);
+  findData(dictionary, "this");
   processInput();
   freeTable(dictionary);
   return 0;
@@ -117,47 +118,40 @@ void readDictionary(char *filename) {
     fprintf(stderr, "The file does not exist\n");
     exit(0);
   }
-  int count = 0, max = 0, count_str = 0;
+  int count = 0, count_str = 0;
   char buffer2;
   fscanf(f1,"%c", &buffer2);
   while (!feof(f1)){
     if(buffer2 == '\n'){
-      count=0;
       count_str++;
     }
-    else{count++;}
-    if(count>max)max = count;
     fscanf(f1,"%c", &buffer2);
   }
-  max+=1;
   fseek(f1, 0, SEEK_SET);
-  char** buffer = (char**)calloc((count_str+1),sizeof(char*));
-  // printf("%s\n\n", buffer[7]);// test point
-  for (int i = 0; i < (count_str+1); i++) {
-    buffer[i] = (char*)calloc(max,sizeof(char));
-    // printf("%d\n", max);
-  }
   dictionary = createHashTable(count_str, &stringHash,&stringEquals);
-  int* key_buff = (int*)calloc(count_str+1,sizeof(unsigned int));
-  int i = 0;
-  fscanf(f1, "%s", buffer[i]);
-  key_buff[i] = stringHash(buffer[i]);
-  // printf("%s\n", buffer[i]);
-  // printf("%d\n", key_buff[i]);
+  char* buffer= NULL;
+  int* key_buff = (int*)calloc(count_str,sizeof(unsigned int));//mark
+  
+  fscanf(f1,"%c", &buffer2);
+  int i = 0;count = 1;
   while(!feof(f1)){
-    insertData(dictionary, buffer[i], &(key_buff[i]));
-    i++;
-    fscanf(f1, "%s", buffer[i]); 
-    if (i<=count_str) key_buff[i] = stringHash(buffer[i]);
-    
+      if(buffer2 == '\n'){
+        fseek(f1, -count, SEEK_CUR);
+        buffer = (char*)calloc(count+2,sizeof(char));
+        fscanf(f1, "%s", buffer);
+        key_buff[i] = stringHash(buffer);
+        insertData(dictionary, buffer, &(key_buff[i]));
+        if (i<=count_str) key_buff[i] = stringHash(buffer);
+        i++;
+        count = 0;
+      }
+      fscanf(f1,"%c", &buffer2);
+      count++;
   }
-
-  free(buffer);
-  free(key_buff);
   fclose(f1);
+  free(buffer);
   // char asdff[] = "this";
   // printf("%d",*((int*)findData(dictionary, asdff)));
-
 }
 
 /*
@@ -186,86 +180,87 @@ void readDictionary(char *filename) {
 void processInput() {
   char* temp = (char*)calloc(61, sizeof(char));
   int i = 0, count = 1;
-  while (1) {
-    if(i%59 == 0&&i!=0){
+  char temp2 = 0, temp3 = 0;
+  while(1){
+    if (i%59 == 0&&i!=0){
       count++;
       temp = (char*)realloc(temp, (60*count+1)*sizeof(char));
     }
-    if (scanf("%c", &(temp[i]))==EOF) break;
-    // printf("%c", temp[i]);//testpoint
-    // temp[i+1]='\0';
-    i++;
-  }  
+    temp[i] = (char)getchar();
+      // if(temp[i] == EOF){
+      //   temp3 = temp[i];
+      //   temp2 = 0;
+      //   temp[i] = '\0';
+      //   //test
+      //   // temp = (char*)realloc(temp, (i+1)*sizeof(char));
+      //   // printf("%s", temp);
+      // }
+      if(!((temp[i]>64&&temp[i]<91)||(temp[i]>96&&temp[i]<123))||temp[i] == EOF){
+        temp2 = temp[i];
+        if (temp[i] == EOF) {
+          temp2 = 0;
+          temp3 = EOF;
+        }
 
-  temp[i]='\0';
-  temp = (char*)realloc(temp, (i+1)*sizeof(char));
- 
-  int length = strlen(temp);
-  int max = 0;
-  count = 0;
-  for (int j = 0; j < length; j++) {
-    if (count>max)max=count;
-    if(temp[j]==' '||temp[j]=='\n')count = 0;
-    else{count++;}
-  }
-  count = 0;
-  char * buffer = (char*)calloc(max+1,sizeof(char));
-  char * v2 = (char*)calloc(max+1,sizeof(char));
-  char * v3 = (char*)calloc(max+1,sizeof(char));
-  char * v2_temp = (char*)calloc(max+1,sizeof(char));
-  char * v3_temp = (char*)calloc(max+1,sizeof(char));
-  for (int j = 0; j < length+1; j++) {
-    if(((temp[j]>64&&temp[j]<91)||(temp[j]>96&&temp[j]<123))&&temp[j]!='\0'){
-      buffer[count] = temp[j];
-      count++;
-    }
-    else{
-      buffer[count]='\0';
-      count = 0;
-      strcpy(v2, buffer);
-      strcpy(v3, buffer);
-      // printf("%s", v3);   
-      if (findData(dictionary, buffer)!=NULL){
-          printf("%s", buffer);  
-      } 
-      else{
-         strcpy(v2_temp, v2);
+        temp[i] = '\0';  
+        // temp = (char*)realloc(temp, (i+1)*sizeof(char));
+        i = -1;
+        //test
+        // printf("%s", temp);
+        // if(temp2!=0) printf("%c", temp2);
+      
+      if(findData(dictionary, temp)){
+        if(temp2!=0) {
+          printf("%s", temp);
+          printf("%c", temp2);
+        }
+        else{
+          if (temp[0]!='\0'){
+            printf("%s", temp);
+          } 
+        }
+      }else{
+          int length = strlen(temp);
+          char * v2 = (char*)calloc(length+1,sizeof(char));
+          strcpy(v2, temp);
           for (int k =1; k < strlen(v2);k++) {
               if(isupper(v2[k]))v2[k]+=32;
-            }
-          if(findData(dictionary, v2)!=NULL){
-            printf("%s", v2_temp);
           }
-///////////////////////////////////////////////////////
-        if(findData(dictionary, v2)==NULL){
-          strcpy(v3_temp, v3);
-          for (int k =0; k < strlen(v3);k++) {
-              if(isupper(v3[k]))v3[k]+=32;
-            }
-            if(findData(dictionary, v3)!=NULL){
-              printf("%s", v3_temp);
+          if(findData(dictionary, v2)!=NULL){
+            if(temp2!=0) {
+              printf("%s", temp);
+              printf("%c", temp2);
             }
             else{
-              int decision;
-              for (int index = 0; index< strlen(v3);index++){
-                if((v3[index]>64&&v3[index]<91)||(v3[index]>96&&v3[index]<123)) decision=1;
-              }
-              if(v3[0]=='\0')decision = 0;
-              if(decision==1) printf("%s [sic]", v3_temp);
-
-              else printf("%s", v3_temp);
+              if (temp[0]!='\0'){
+              printf("%s", temp);
+             } 
             }
-          
-        }
-        ////////////////////////////////////////////
+          }else{
+            if(isupper(v2[0]))v2[0]+=32;
+            if(findData(dictionary, v2)!=NULL){
+              printf("%s", temp);
+              if(temp2!=0) printf("%c", temp2);
+            }else{
+              if (temp[0]=='\0'&&temp3!=EOF)printf("%c", temp2);
+              else{
+                if(temp2!=0) {
+                  printf("%s [sic]", temp);
+                  printf("%c", temp2);
+                }
+                else{
+                  if (temp[0]!='\0'){
+                    printf("%s [sic]", temp);
+                  } 
+                }
+              }
+            }
+          }
+          free(v2);
       }
-      if(temp[j]!='\0')printf("%c", temp[j]);;
-    }
-  }  
-   free(temp);
-   free(v2_temp);
-   free(v2);
-   free(buffer);
-   free(v3);
-   free(v3_temp);
+      }
+    i++;
+    if (temp3==EOF) break;
+  }
+  free(temp);
 }
