@@ -42,11 +42,7 @@ HashTable *dictionary;
  * process, in the same way which this does.
  */
 int main(int argc, char **argv) {
-  /* main in C should always return 0 as a way of telling
-     whatever program invoked this that everything went OK.
-
-     You should free the dictionary when done.
-     */
+  dictionary = createHashTable(200, &stringHash,&stringEquals);
   readDictionary(argv[1]);
   processInput();
   freeTable(dictionary);
@@ -70,9 +66,10 @@ int power(int a, int b){
  * to a char * (NULL terminated string) which is done for you here for
  * convenience.
  */
+// create a hash function below. I used one similar to polynomial rolling hash function
+// The method refers to the website: https://www.geeksforgeeks.org/string-hashing-using-polynomial-rolling-hash-function/
 unsigned int stringHash(void *s) {
   char *string = (char *)s;
-  // create a hash function below. use polynomial rolling hash function
   int p = 31;
   int hash_value = 0;
   if(strlen(string)==0) return 0;
@@ -118,46 +115,14 @@ void readDictionary(char *filename) {
     fprintf(stderr, "The file does not exist\n");
     exit(0);
   }
-  int count = 0, max = 0, count_str = 0;
-  char buffer2;
-  fscanf(f1,"%c", &buffer2);
-  while (!feof(f1)){
-    if(buffer2 == '\n'){
-      count=0;
-      count_str++;
-    }
-    else{count++;}
-    if(count>max)max = count;
-    fscanf(f1,"%c", &buffer2);
+  char* buffer = NULL;
+  while(1){
+    int num = fscanf(f1, "%ms", &buffer);
+    if (num == EOF) break;
+    insertData(dictionary, buffer, buffer);
   }
-  max+=1;
-  fseek(f1, 0, SEEK_SET);
-  char** buffer = (char**)calloc((count_str+1),sizeof(char*));
-  // printf("%s\n\n", buffer[7]);// test point
-  for (int i = 0; i < (count_str+1); i++) {
-    buffer[i] = (char*)calloc(max,sizeof(char));
-    // printf("%d\n", max);
-  }
-  dictionary = createHashTable(count_str, &stringHash,&stringEquals);
-  int* key_buff = (int*)calloc(count_str+1,sizeof(unsigned int));
-  int i = 0;
-  fscanf(f1, "%s", buffer[i]);
-  key_buff[i] = stringHash(buffer[i]);
-  // printf("%s\n", buffer[i]);
-  // printf("%d\n", key_buff[i]);
-  while(!feof(f1)){
-    insertData(dictionary, buffer[i], &(key_buff[i]));
-    i++;
-    fscanf(f1, "%s", buffer[i]); 
-    if (i<=count_str) key_buff[i] = stringHash(buffer[i]);
-    
-  }
-  free(buffer);
   fclose(f1);
-  // char asdff[] = "this";
-  // printf("%d",*((int*)findData(dictionary, asdff)));
 }
-
 /*
  * This should process standard input and copy it to standard output
  * as specified in the specs.  EG, if a standard dictionary was used
@@ -182,18 +147,16 @@ void readDictionary(char *filename) {
  * of your grade,  you can no longer assume words have a bounded length.
  */
 void processInput() {
-  char* temp = (char*)calloc(61, sizeof(char));
-  char* decision;
-  char temp2;
+  char* decision; // help us identify if the variations are found
   int i = 0;
   char appending[7] = " [sic]";
+  char* temp = (char*)calloc(10, sizeof(char));
+  int temp2;
   while (1) {
     if(i>59){
       temp = (char*)realloc(temp, (i+1)*sizeof(char));
     }
     temp2 = getchar();
-    // printf("%c", temp[i]);//testpoint
-    // temp[i+1]='\0';
     if (isalpha(temp2)){
       temp[i] = temp2;
       i++;
@@ -210,20 +173,18 @@ void processInput() {
         }
         decision = findData(dictionary, temp);
         if (decision == NULL) times++;
-        // printf("%d", times);
         if (isupper(temp[0]))temp[0] = tolower(temp[0]);
         decision = findData(dictionary, temp);
         if (decision == NULL) times++;
-        if (times==3){
+        if (times==3){ // 3 means none of the variations are found
           printf("%s", appending);
         }
       }
-        // temp = (char*)realloc(temp, (i+1)*sizeof(char));
         i = 0;
+        free(temp);
         if (temp2==EOF) break;
-        else printf("%c", temp2);
+        temp = (char*)calloc(61, sizeof(char));
+        if (temp2!=EOF) printf("%c", temp2);
     }
   }  
-  free(temp);
-  
 }
