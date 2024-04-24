@@ -1,4 +1,5 @@
 
+
 /*
  * Standard IO and file routines.
  */
@@ -9,13 +10,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "floating.h"
-// void bin(unsigned n)
-// {
-//     if (n > 1)
-//         bin(n >> 1);
 
-//     printf("%d", n & 1);
-// }
 
 /* This function is designed to provide information about
    the IEEE floating point value passed in.  Note that this
@@ -41,20 +36,21 @@
 */
 char *floating_info(union floating f, char *buf, size_t buflen){
   // the sign of the number
+  buf[buflen-1] = '\0';
 	int sign = f.as_int>>31;
   int exponent = (f.as_int<<1>>24)-127;
   int significand = f.as_int & 0x7FFFFF;
   if (exponent == -127 && significand == 0) {
-    if (sign == 0) buf = "+0";
-    else buf = "-0";
+    if (sign == 0) snprintf(buf, buflen, "%s", "+0");
+    else snprintf(buf, buflen, "%s", "-0");
   }
   else if (exponent == 128) {
     if (significand == 0) {
-      if (sign == 0) buf = "+INF";
-      else buf = "-INF";
+      if (sign == 0)snprintf(buf, buflen, "%s", "+INF");
+      else snprintf(buf, buflen, "%s", "-INF");
     }
     else{
-      buf = "NaN";
+      snprintf(buf, buflen, "%s", "NaN");
     }
   }// normal cases
   else{
@@ -67,24 +63,18 @@ char *floating_info(union floating f, char *buf, size_t buflen){
         if((significand & (1<<(22-i)))!=0) mantissa[i] = '1';
         else mantissa[i] = '0';
       }
-      if (sign == 0)buf[0]='+';
-      else buf[0] = '-';
+      if (sign == 0) snprintf(buf, buflen, "+0.%s 2^%d", mantissa, exponent);
+      else  snprintf(buf, buflen, "-0.%s 2^%d", mantissa, exponent);
       buf[1]='0';
       buf[2]='.';
-      //distributing mantissa
-      snprintf(&(buf[3]), buflen, "%s 2^%d", mantissa, exponent);
     }
     else{
       for (int i = 0; i < 23; i++) {
         if((significand & (1<<(22-i)))!=0) mantissa[i] = '1';
         else mantissa[i] = '0';
       }
-      if (sign == 0)buf[0]='+';
-      else buf[0] = '-';
-      buf[1]='1';
-      buf[2]='.';
-      //distributing mantissa
-      snprintf(&(buf[3]), buflen, "%s 2^%d", mantissa, exponent);
+      if (sign == 0)snprintf(buf, buflen, "+1.%s 2^%d", mantissa, exponent);
+      else snprintf(buf, buflen, "-1.%s 2^%d", mantissa, exponent);
     }
   }
   return buf;
@@ -94,21 +84,21 @@ char *floating_info(union floating f, char *buf, size_t buflen){
    the 16b IEEE floating point value passed in with the same exact format.  */
 char *ieee_16_info(uint16_t f, char *buf, size_t buflen){
   // the sign of the number
+  buf[buflen-1] = '\0';
 	int sign = f>>15;
   int exponent =((f & 0x7C00) >> 10 )-15;
   int significand = f & 0x3FF;
   if (exponent == -15 && significand == 0) {
-    if (sign == 0) buf = "+0";
-    else buf = "-0";
+    if (sign == 0) snprintf(buf, buflen, "%s", "+0");
+    else snprintf(buf, buflen, "%s", "-0");
   }
   else if (exponent == 16) {
-    // printf("checkpoint\n");
     if (significand == 0) {
-      if (sign == 0) buf = "+INF";
-      else buf = "-INF";
+      if (sign == 0) snprintf(buf, buflen, "%s", "+INF");
+      else  snprintf(buf, buflen, "%s", "-INF");
     }
     else{
-      buf = "NaN";
+      snprintf(buf, buflen, "%s", "NaN");
     }
   }// normal cases
   else{
@@ -161,8 +151,6 @@ uint16_t as_ieee_16(union floating f){
   int sign = f.as_int>>31;
   int expo = (f.as_int<<1>>24)-127;
   int expo_16 = expo + 15;
-  printf("expo: %d\n", expo_16);
-  printf("expo: %d\n", expo);
   int significand = f.as_int & 0x7FFFFF;
   if (expo == 128){
     int temp = sign<<15;
@@ -180,7 +168,7 @@ uint16_t as_ieee_16(union floating f){
   else{// rounding part
   // underflow and overflow
     int temp;
-    if (expo < -15) {
+    if (expo < -24) {//problem
       temp = sign<<15;
       return temp;// round to zero
     }
@@ -190,30 +178,30 @@ uint16_t as_ieee_16(union floating f){
       return temp;
     }
     else{
-      //denormalized part and normal part
-      // printf("checkpoint3!!!\n");
-
       int sig_16 = significand >> 13;
-      int round_bit = significand & 0x1000;
-      int sticky_bit = significand<<11>>11;
-      if (expo == -15) {
+      if (expo_16 <= 0) {
+        int shift = 14 - expo_16;
+        significand |= 0x800000;
+        sig_16 = significand >> shift;
+        int round_bit = (significand>>(shift-1)) & 1;
+        int sticky_bit = significand & (((1 << shift)-1)>>1);
         if (round_bit == 0) {
             temp = sign << 15;
-            temp |= sig_16; //might be wrong?
+            temp |= sig_16;
             return temp;
         }
         else{
             if (sticky_bit!=0) {
-              sig_16 += 1;
-              temp = sign << 15;
-              temp |= sig_16;
-              return temp;
-            }
-            else{
-              if (sig_16<<15>>15) {
                 temp = sign << 15;
                 sig_16 += 1;
-                temp |= sig_16; //might be wrong?
+                temp |= sig_16;
+                return temp;
+            }
+            else{
+              if (sig_16 & 1) {
+                temp = sign << 15;
+                sig_16 += 1;
+                temp |= sig_16; 
                 return temp;
               }
               else{
@@ -225,11 +213,10 @@ uint16_t as_ieee_16(union floating f){
         }
     }
     else{
-      // printf("checkpoint3!!!\n");
+      int round_bit = (significand >> 12) & 1;
+      int sticky_bit = significand & 0xFFF;
         if (round_bit == 0) {
-          // printf("checkpoint3!!!\n");
             temp = sign << 15;
-            // printf("expo:%d\n", expo_16);
             temp |= (expo_16 << 10);
             temp |= sig_16;
             return temp;
@@ -243,7 +230,7 @@ uint16_t as_ieee_16(union floating f){
               return temp;
           }  
             else{
-              if (sig_16<<15>>15) {
+              if (sig_16&1) {
                 temp = sign << 15;
                 sig_16 += 1;
                 temp |= (expo_16<<10);
@@ -263,5 +250,3 @@ uint16_t as_ieee_16(union floating f){
   }
 }
 }
-
-
